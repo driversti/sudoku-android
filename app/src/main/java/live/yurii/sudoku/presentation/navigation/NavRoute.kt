@@ -2,7 +2,9 @@ package live.yurii.sudoku.presentation.navigation
 
 sealed class NavRoute(val route: String) {
     object Welcome : NavRoute("welcome")
-    object Game : NavRoute("game")
+    object Game : NavRoute("game/{difficulty}") {
+        fun createRoute(difficulty: String) = "game/$difficulty"
+    }
     object Leaderboard : NavRoute("leaderboard/{difficulty}") {
         fun createRoute(difficulty: String) = "leaderboard/$difficulty"
     }

@@ -27,7 +27,7 @@ fun SudokuNavigation(
         composable(NavRoute.Welcome.route) {
             WelcomeScreen(
                 onStartGame = { difficulty ->
-                    navController.navigate(NavRoute.Game.route)
+                    navController.navigate(NavRoute.Game.createRoute(difficulty.name))
                 },
                 onLeaderboardClick = {
                     navController.navigate(NavRoute.Leaderboard.createRoute(Difficulty.MEDIUM.name))
@@ -44,9 +44,22 @@ fun SudokuNavigation(
             )
         }
 
-        composable(NavRoute.Game.route) {
+        composable(
+            route = NavRoute.Game.route,
+            arguments = listOf(
+                navArgument("difficulty") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val difficultyStr = backStackEntry.arguments?.getString("difficulty")
+            val difficulty = when (difficultyStr?.uppercase()) {
+                "EASY" -> Difficulty.EASY
+                "HARD" -> Difficulty.HARD
+                "EXPERT" -> Difficulty.EXPERT
+                else -> Difficulty.MEDIUM
+            }
             GameScreen(
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                difficulty = difficulty
             )
         }
 

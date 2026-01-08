@@ -4,10 +4,12 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import live.yurii.sudoku.domain.model.CellPosition
 import live.yurii.sudoku.domain.model.Difficulty
@@ -40,6 +42,8 @@ class GameViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
+    private var timerJob: kotlinx.coroutines.Job? = null
+
     private val _gameState = MutableStateFlow<GameState>(GameState.Loading)
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
@@ -49,19 +53,50 @@ class GameViewModel @Inject constructor(
     private val _isSubmittingScore = MutableStateFlow(false)
     val isSubmittingScore: StateFlow<Boolean> = _isSubmittingScore.asStateFlow()
 
+    // State for showing "continue or restart" dialog
+    private val _showNewGameDialog = MutableStateFlow<Difficulty?>(null)
+    val showNewGameDialog: StateFlow<Difficulty?> = _showNewGameDialog.asStateFlow()
+
+    // Track if we've already loaded the current game
+    private var currentGameJob: kotlinx.coroutines.Job? = null
+
     init {
-        loadCurrentGame()
         checkLoginStatus()
     }
 
-    private fun loadCurrentGame() {
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
+        // Save current state when leaving to preserve elapsed time
+        val currentState = (_gameState.value as? GameState.Success)?.game ?: return
         viewModelScope.launch {
-            gameRepository.getCurrentGameFlow().collect { game ->
-                if (game != null) {
-                    _gameState.value = GameState.Success(game)
-                } else {
-                    // No saved game, start a new one
-                    startNewGame(Difficulty.MEDIUM)
+            gameRepository.saveGame(currentState)
+        }
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            // Track the initial elapsed time and when we started tracking
+            val currentState = (_gameState.value as? GameState.Success)?.game ?: return@launch
+            val baseElapsedTime = currentState.elapsedTime
+            val timerStartTime = System.currentTimeMillis()
+
+            while (isActive) {
+                delay(1000) // Update every second
+                val state = (_gameState.value as? GameState.Success)?.game ?: return@launch
+
+                // Only update if game is not paused and not complete
+                if (!state.isPaused && !state.isComplete) {
+                    // Calculate new elapsed time: base time + time since timer started
+                    val newElapsedTime = baseElapsedTime + (System.currentTimeMillis() - timerStartTime)
+                    val updatedGame = state.copy(elapsedTime = newElapsedTime)
+                    _gameState.value = GameState.Success(updatedGame)
+
+                    // Save every 5 seconds to avoid excessive DB writes
+                    if (newElapsedTime / 5000 > state.elapsedTime / 5000) {
+                        gameRepository.saveGame(updatedGame)
+                    }
                 }
             }
         }
@@ -76,10 +111,37 @@ class GameViewModel @Inject constructor(
 
     fun startNewGame(difficulty: Difficulty) {
         viewModelScope.launch {
+            val currentGame = gameRepository.getCurrentGame()
+            if (currentGame != null && !currentGame.isComplete) {
+                // There's an incomplete game, show dialog
+                _showNewGameDialog.value = difficulty
+            } else {
+                // No incomplete game, start new one directly
+                forceNewGame(difficulty)
+            }
+        }
+    }
+
+    fun continueCurrentGame() {
+        viewModelScope.launch {
+            _showNewGameDialog.value = null
+            // Load the saved game
+            val game = gameRepository.getCurrentGame()
+            if (game != null) {
+                _gameState.value = GameState.Success(game)
+                startTimer()
+            }
+        }
+    }
+
+    fun forceNewGame(difficulty: Difficulty) {
+        viewModelScope.launch {
+            _showNewGameDialog.value = null
             _gameState.value = GameState.Loading
             val result = newGameUseCase(difficulty)
             result.onSuccess { game ->
                 _gameState.value = GameState.Success(game)
+                startTimer()
             }.onFailure { exception ->
                 _gameState.value = GameState.Error(exception.message)
             }

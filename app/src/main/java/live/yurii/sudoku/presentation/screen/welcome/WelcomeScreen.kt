@@ -3,10 +3,13 @@ package live.yurii.sudoku.presentation.screen.welcome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -69,22 +72,17 @@ fun WelcomeScreen(
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // New Game Button
-            Button(
-                onClick = { onStartGame(Difficulty.MEDIUM) },
-                modifier = Modifier
-                    .size(width = 200.dp, height = 56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text(
-                    text = "Start Game",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
+            // Difficulty Selection
+            Text(
+                text = "Select Difficulty",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Difficulty Buttons
+            DifficultyButtons(onStartGame = onStartGame)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -161,5 +159,58 @@ private fun RowOfActions(
                 modifier = Modifier.size(32.dp)
             )
         }
+    }
+}
+
+@Composable
+private fun DifficultyButtons(onStartGame: (Difficulty) -> Unit) {
+    Column(
+        modifier = Modifier.width(200.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        DifficultyButton(
+            text = "Easy",
+            color = androidx.compose.ui.graphics.Color(0xFF4CAF50),
+            onClick = { onStartGame(Difficulty.EASY) }
+        )
+        DifficultyButton(
+            text = "Medium",
+            color = androidx.compose.ui.graphics.Color(0xFF2196F3),
+            onClick = { onStartGame(Difficulty.MEDIUM) }
+        )
+        DifficultyButton(
+            text = "Hard",
+            color = androidx.compose.ui.graphics.Color(0xFFFF9800),
+            onClick = { onStartGame(Difficulty.HARD) }
+        )
+        DifficultyButton(
+            text = "Expert",
+            color = androidx.compose.ui.graphics.Color(0xFFF44336),
+            onClick = { onStartGame(Difficulty.EXPERT) }
+        )
+    }
+}
+
+@Composable
+private fun DifficultyButton(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color
+        )
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleMedium,
+            color = androidx.compose.ui.graphics.Color.White
+        )
     }
 }

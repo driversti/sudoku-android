@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -31,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,17 +45,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import live.yurii.sudoku.domain.model.Difficulty
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
     onBack: () -> Unit,
+    difficulty: Difficulty = Difficulty.MEDIUM,
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val gameState by viewModel.gameState.collectAsState()
     val isLoggedIn by viewModel.isLoggedIn.collectAsState()
     val isSubmittingScore by viewModel.isSubmittingScore.collectAsState()
+    val showNewGameDialog by viewModel.showNewGameDialog.collectAsState()
     val currentGame = (gameState as? GameState.Success)?.game
+
+    // Start a new game with the requested difficulty when the screen is first loaded
+    LaunchedEffect(difficulty) {
+        viewModel.startNewGame(difficulty)
+    }
 
     Scaffold(
         topBar = {
@@ -151,6 +161,15 @@ fun GameScreen(
             onSubmitScore = { viewModel.onSubmitScore() },
             isLoggedIn = isLoggedIn,
             isSubmittingScore = isSubmittingScore
+        )
+    }
+
+    // Show "Continue or New Game" dialog
+    showNewGameDialog?.let { difficulty ->
+        NewGameDialog(
+            onContinue = { viewModel.continueCurrentGame() },
+            onNewGame = { viewModel.forceNewGame(difficulty) },
+            onDismiss = { viewModel.continueCurrentGame() }
         )
     }
 }
@@ -301,7 +320,8 @@ fun NumberPad(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Numbers 1-9
         for (row in 0..2) {
@@ -419,4 +439,42 @@ private fun formatTime(ms: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return String.format("%d:%02d", minutes, seconds)
+}
+
+@Composable
+private fun NewGameDialog(
+    onContinue: () -> Unit,
+    onNewGame: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Game in Progress",
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Text(
+                text = "You have an unfinished game. Would you like to continue it or start a new one?",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onNewGame,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("New Game")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onContinue) {
+                Text("Continue")
+            }
+        }
+    )
 }

@@ -25,7 +25,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"https://sudoku.yurii.live/api\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://sudoku.yurii.live/api/\"")
         }
         release {
             isMinifyEnabled = false
@@ -33,7 +33,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://sudoku.yurii.live/api\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://sudoku.yurii.live/api/\"")
         }
     }
 

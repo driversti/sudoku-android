@@ -8,7 +8,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.SideEffect
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import kotlinx.coroutines.launch
 import live.yurii.sudoku.presentation.navigation.SudokuNavigation
 import live.yurii.sudoku.presentation.common.theme.SudokuTheme
 import dagger.hilt.android.AndroidEntryPoint

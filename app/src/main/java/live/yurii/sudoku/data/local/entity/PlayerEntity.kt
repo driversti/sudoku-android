@@ -1,0 +1,13 @@
+package live.yurii.sudoku.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "players")
+data class PlayerEntity(
+    @PrimaryKey
+    val id: String,
+    val username: String,
+    val token: String?,
+    val tokenExpiry: Long?
+)
